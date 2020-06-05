@@ -185,79 +185,6 @@ using namespace std;
 /*************************Class14-1*****************/
 
 
-
-VideoCapture createInput(bool useCamera, std::string videoPath)
-{
-	//选择输入
-	VideoCapture capVideo;
-	if (useCamera) {
-		capVideo.open(0);
-	}
-	else {
-		capVideo.open(videoPath);
-	}
-	return capVideo;
-}
-int createMaskByKmeans(cv::Mat src, cv::Mat& mask)
-{
-	if ((mask.type() != CV_8UC1)
-		|| (src.size() != mask.size())
-		) {
-		return 0;
-	}
-
-	int width = src.cols;
-	int height = src.rows;
-
-	int pixNum = width * height;
-	int clusterCount = 2;
-	Mat labels;
-	Mat centers;
-
-	//制作kmeans用的数据
-	Mat sampleData = src.reshape(3, pixNum);
-	Mat km_data;
-	sampleData.convertTo(km_data, CV_32F);
-
-	//执行kmeans
-	TermCriteria criteria = TermCriteria(TermCriteria::EPS + TermCriteria::COUNT, 10, 0.1);
-	kmeans(km_data, clusterCount, labels, criteria, clusterCount, KMEANS_PP_CENTERS, centers);
-
-	//制作mask
-	uchar fg[2] = { 0,255 };
-	for (int row = 0; row < height; row++) {
-		for (int col = 0; col < width; col++) {
-			mask.at<uchar>(row, col) = fg[labels.at<int>(row * width + col)];
-		}
-	}
-
-	return 0;
-}
-void segColor()
-{
-
-	Mat src = imread("E:\\picture\\lvmu.jpg");
-
-	Mat mask = Mat::zeros(src.size(), CV_8UC1);
-	createMaskByKmeans(src, mask);
-
-	imshow("src", src);
-	imshow("mask", mask);
-
-	waitKey(0);
-
-}
-
-
-
-int main()
-{
-	segColor();
-}
-
-
-/*************************Class14-2*****************/
-//
 //
 //VideoCapture createInput(bool useCamera, std::string videoPath)
 //{
@@ -317,7 +244,7 @@ int main()
 //	imshow("src", src);
 //	imshow("mask", mask);
 //
-//	waitKey(30);
+//	waitKey(0);
 //
 //}
 //
@@ -325,19 +252,115 @@ int main()
 //
 //int main()
 //{
-//	VideoCapture capture("E:\\File_\\大二下\\数字图像处理\\IMG_0589.TRIM.mp4");
-//	Mat frame;
-//	while (1)
-//	{
-//		capture >> frame;
-//		Mat src = imread("E:\\picture\\lvmu.jpg");
-//
-//		Mat mask = Mat::zeros(src.size(), CV_8UC1);
-//		createMaskByKmeans(src, mask);
-//
-//		imshow("src", src);
-//		imshow("mask", mask);
-//
-//		waitKey(30);
-//	}
+//	segColor();
 //}
+
+
+/*************************Class14-2*****************/
+
+
+VideoCapture createInput(bool useCamera, std::string videoPath)
+{
+	//选择输入
+	VideoCapture capVideo;
+	if (useCamera) {
+		capVideo.open(0);
+	}
+	else {
+		capVideo.open(videoPath);
+	}
+	return capVideo;
+}
+int createMaskByKmeans(cv::Mat src, cv::Mat& mask)
+{
+	if ((mask.type() != CV_8UC1)
+		|| (src.size() != mask.size())
+		) {
+		return 0;
+	}
+
+	int width = src.cols;
+	int height = src.rows;
+
+	int pixNum = width * height;
+	int clusterCount = 2;
+	Mat labels;
+	Mat centers;
+
+	//制作kmeans用的数据
+	Mat sampleData = src.reshape(3, pixNum);
+	Mat km_data;
+	sampleData.convertTo(km_data, CV_32F);
+
+	//执行kmeans
+	TermCriteria criteria = TermCriteria(TermCriteria::EPS + TermCriteria::COUNT, 10, 0.1);
+	kmeans(km_data, clusterCount, labels, criteria, clusterCount, KMEANS_PP_CENTERS, centers);
+
+	//制作mask
+	uchar fg[2] = { 0,255 };
+	for (int row = 0; row < height; row++) {
+		for (int col = 0; col < width; col++) {
+			mask.at<uchar>(row, col) = fg[labels.at<int>(row * width + col)];
+		}
+	}
+	if (mask.at<uchar>(10, 10) == 255)
+	{//反转整个图像黑白
+		mask = 255 - mask;
+	}
+	return 0;
+}
+
+
+
+
+int main()
+{
+	VideoCapture capture1("E:\\picture\\Class14-2素材.mp4");
+	VideoCapture capture2("E:\\picture\\Class14-2素材2.mp4");
+	Mat frame1;
+	Mat frame2;
+	Mat disMat;
+	int width;
+	int height;
+	while (1)
+	{
+		capture1 >> frame1;
+		capture2 >> frame2;
+		
+
+		Mat disMat = frame2.clone();
+		resize(frame1,frame1,frame2.size());
+		width = frame2.cols;
+		height = frame2.rows;
+
+		Mat mask = Mat::zeros(frame1.size(), CV_8UC1);
+		createMaskByKmeans(frame1, mask);
+
+		
+		for (int row = 0; row < height; row++) {
+			for (int col = 0; col < width; col++) {
+				if (mask.at<uchar>(row, col) == 255)
+				{
+					disMat.at<Vec3b>(row, col)[0] = frame1.at<Vec3b>(row, col)[0];
+					disMat.at<Vec3b>(row, col)[1] = frame1.at<Vec3b>(row, col)[1];
+					disMat.at<Vec3b>(row, col)[2] = frame1.at<Vec3b>(row, col)[2];
+				}
+				else
+				{
+					disMat.at<Vec3b>(row, col)[0] = frame2.at<Vec3b>(row, col)[0];
+					disMat.at<Vec3b>(row, col)[1] = frame2.at<Vec3b>(row, col)[1];
+					disMat.at<Vec3b>(row, col)[2] = frame2.at<Vec3b>(row, col)[2];
+				}
+			}
+		}
+
+
+		imshow("mask", disMat);
+
+
+
+		waitKey(30);
+		
+	}
+	return 0;
+}
